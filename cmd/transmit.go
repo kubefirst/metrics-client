@@ -46,11 +46,13 @@ var transmitCmd = &cobra.Command{
 			if installMethod == "" {
 				log.Fatalf("when transmitting cluster-zero metric type, install-method is a required value")
 			}
+			telemetryShim.TransmitClusterZero(true, segmentClient, segment.MetricClusterInstallStarted, "")
 			telemetryShim.TransmitClusterZero(true, segmentClient, segment.MetricClusterInstallCompleted, "")
 			log.Infof(
-				"metric transmitted: %s/%s %s",
+				"metrics transmitted: %s/%s %s and %s",
 				clusterId,
 				clusterType,
+				segment.MetricClusterInstallStarted,
 				segment.MetricClusterInstallCompleted,
 			)
 		default:
