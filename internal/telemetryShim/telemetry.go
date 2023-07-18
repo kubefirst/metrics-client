@@ -7,7 +7,8 @@ See the LICENSE file for more details.
 package telemetryShim
 
 import (
-	"github.com/kubefirst/runtime/configs"
+	"os"
+
 	"github.com/kubefirst/runtime/pkg/segment"
 	log "github.com/sirupsen/logrus"
 )
@@ -21,7 +22,7 @@ func SetupInitialTelemetry(
 ) (*segment.SegmentClient, error) {
 	// Segment Client
 	segmentClient := &segment.SegmentClient{
-		CliVersion:        configs.K1Version,
+		CliVersion:        os.Getenv("KUBEFIRST_VERSION"),
 		ClusterID:         clusterID,
 		ClusterType:       clusterType,
 		KubefirstClient:   "api",
