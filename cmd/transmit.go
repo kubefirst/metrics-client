@@ -10,6 +10,8 @@ import (
 	"os"
 
 	"github.com/denisbrodbeck/machineid"
+	"github.com/kubefirst/kubefirst-api/pkg/metrics"
+	"github.com/kubefirst/kubefirst-api/pkg/segment"
 	"github.com/kubefirst/metrics-client/pkg/telemetry"
 	"github.com/kubefirst/metrics-client/pkg/utils"
 
@@ -54,17 +56,17 @@ var transmitCmd = &cobra.Command{
 				ClusterID:         os.Getenv("CLUSTER_ID"),
 				ClusterType:       os.Getenv("CLUSTER_TYPE"),
 				DomainName:        strippedDomainName,
+				ErrorMessage:      err.Error(),
 				GitProvider:       os.Getenv("GIT_PROVIDER"),
 				InstallMethod:     os.Getenv("INSTALL_METHOD"),
 				KubefirstClient:   os.Getenv("KUBEFIRST_CLIENT"),
 				KubefirstTeam:     os.Getenv("KUBEFIRST_TEAM"),
 				KubefirstTeamInfo: os.Getenv("KUBEFIRST_TEAM_INFO"),
 				MachineID:         machineID,
-				ErrorMessage:      err.Error(),
+				MetricName:        metrics.ClusterInstallStarted,
 				UserId:            machineID,
-				MetricName:        telemetry.MetricClusterInstallStarted,
 			},
-			Client: analytics.New(telemetry.SegmentIOWriteKey),
+			Client: analytics.New(segment.SegmentIOWriteKey),
 		}
 
 		defer segmentClient.Client.Close()
@@ -72,15 +74,15 @@ var transmitCmd = &cobra.Command{
 		switch transmitType {
 		case "cluster-zero":
 			//started event
-			err := telemetry.SendCountMetric(&segmentClient)
+			err := telemetry.SendCountMetric(&segmentClient, metrics.ClusterInstallStarted)
 			if err != nil {
 				log.Error(err)
 			}
 			log.Infof("metrics transmitted: %s", segmentClient.TelemetryEvent.MetricName)
 
 			//completed event
-			segmentClient.TelemetryEvent.MetricName = telemetry.MetricClusterInstallCompleted
-			err = telemetry.SendCountMetric(&segmentClient)
+			segmentClient.TelemetryEvent.MetricName = metrics.ClusterInstallCompleted
+			err = telemetry.SendCountMetric(&segmentClient, metrics.ClusterInstallCompleted)
 			if err != nil {
 				log.Error(err)
 			}

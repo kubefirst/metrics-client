@@ -4,6 +4,7 @@ go 1.20
 
 require (
 	github.com/denisbrodbeck/machineid v1.0.1
+	github.com/kubefirst/kubefirst-api v0.0.4
 	github.com/segmentio/analytics-go v3.1.0+incompatible
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/cobra v1.7.0

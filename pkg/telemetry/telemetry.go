@@ -7,11 +7,12 @@ See the LICENSE file for more details.
 package telemetry
 
 import (
+	"github.com/kubefirst/kubefirst-api/pkg/metrics"
 	"github.com/segmentio/analytics-go"
 )
 
-func SendCountMetric(segmentClient *SegmentClient) error {
-	if segmentClient.TelemetryEvent.MetricName == MetricClusterInstallStarted {
+func SendCountMetric(segmentClient *SegmentClient, metricName string) error {
+	if segmentClient.TelemetryEvent.MetricName == metrics.ClusterInstallStarted {
 		err := segmentClient.Client.Enqueue(analytics.Identify{
 			UserId: segmentClient.TelemetryEvent.UserId,
 			Type:   "identify",

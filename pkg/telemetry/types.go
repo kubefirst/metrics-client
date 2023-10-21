@@ -27,6 +27,6 @@ type TelemetryEvent struct {
 	MachineID         string
 	////////////////////////
 	ErrorMessage string
-	UserId       string
 	MetricName   string
+	UserId       string
 }
