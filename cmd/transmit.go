@@ -7,8 +7,13 @@ See the LICENSE file for more details.
 package cmd
 
 import (
-	"github.com/kubefirst/metrics-client/internal/telemetryShim"
-	"github.com/kubefirst/runtime/pkg/segment"
+	"os"
+
+	"github.com/denisbrodbeck/machineid"
+	"github.com/kubefirst/metrics-client/pkg/segment"
+	telemetry "github.com/kubefirst/metrics-client/pkg/telemetry"
+
+	"github.com/segmentio/analytics-go"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -29,32 +34,55 @@ var transmitCmd = &cobra.Command{
 	Long:  `transmit a metric`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// Telemetry handler
-		segmentClient, err := telemetryShim.SetupInitialTelemetry(
-			clusterId,
-			clusterType,
-			installMethod,
-			kubefirstTeam,
-			kubefirstTeamInfo,
-		)
-		if err != nil {
-			log.Warn(err)
-		}
-		defer segmentClient.Client.Close()
 
+		kubefirstVersion := os.Getenv("KUBEFIRST_VERSION")
+		if kubefirstVersion == "" {
+			kubefirstVersion = "development"
+		}
+
+		domainName := os.Getenv("DOMAIN_NAME")
+		strippedDomainName, err := telemetry.RemoveSubdomainV2(domainName)
+		if err != nil {
+			log.Errorf("error encountered while reducing domain name. %s", err)
+		}
+		machineID, _ := machineid.ID()
+
+		segmentClient := analytics.New(segment.SegmentIOWriteKey)
+		defer segmentClient.Close()
+
+		event := segment.TelemetryEvent{
+			CliVersion:        os.Getenv("CLI_VERSION"),
+			CloudProvider:     os.Getenv("CLOUD_PROVIDER"),
+			ClusterID:         os.Getenv("CLUSTER_ID"),
+			ClusterType:       os.Getenv("CLUSTER_TYPE"),
+			DomainName:        strippedDomainName, // done
+			GitProvider:       os.Getenv("GIT_PROVIDER"),
+			InstallMethod:     os.Getenv("INSTALL_METHOD"),
+			KubefirstClient:   os.Getenv("KUBEFIRST_CLIENT"),
+			KubefirstTeam:     os.Getenv("KUBEFIRST_TEAM"),
+			KubefirstTeamInfo: os.Getenv("KUBEFIRST_TEAM_INFO"),
+			MachineID:         machineID, // done
+			ErrorMessage:      err.Error(),
+			UserId:            machineID,
+			MetricName:        segment.MetricClusterInstallStarted,
+		}
+		
 		switch transmitType {
 		case "cluster-zero":
-			if installMethod == "" {
-				log.Fatalf("when transmitting cluster-zero metric type, install-method is a required value")
+			//started event
+			err := segment.SendCountMetric(event)
+			if err != nil {
+				log.Error(err)
 			}
-			telemetryShim.TransmitClusterZero(true, segmentClient, segment.MetricClusterInstallStarted, "")
-			telemetryShim.TransmitClusterZero(true, segmentClient, segment.MetricClusterInstallCompleted, "")
-			log.Infof(
-				"metrics transmitted: %s/%s %s and %s",
-				clusterId,
-				clusterType,
-				segment.MetricClusterInstallStarted,
-				segment.MetricClusterInstallCompleted,
-			)
+			log.Infof("metrics transmitted: %s", event.MetricName)
+
+			//completed event
+			event.MetricName = segment.MetricClusterInstallCompleted
+			err = segment.SendCountMetric(event)
+			if err != nil {
+				log.Error(err)
+			}
+			log.Infof("metrics transmitted: %s", event.MetricName)
 		default:
 			log.Errorf("%s is not an allowed option", transmitType)
 		}
@@ -76,11 +104,4 @@ func init() {
 
 	transmitCmd.Flags().StringVar(&transmitType, "type", "", "the type of metric to transmit [cluster-zero] (required)")
 	transmitCmd.MarkFlagRequired("type")
-	transmitCmd.Flags().StringVar(&clusterId, "cluster-id", "", "the kubefirst cluster id (required)")
-	transmitCmd.MarkFlagRequired("cluster-id")
-	transmitCmd.Flags().StringVar(&clusterType, "cluster-type", "", "the kubefirst cluster type (required)")
-	transmitCmd.MarkFlagRequired("cluster-type")
-	transmitCmd.Flags().StringVar(&installMethod, "install-method", "", "the installation method for the cluster")
-	transmitCmd.Flags().StringVar(&kubefirstTeam, "kubefirst-team", "", "kubefirst team [true/false]")
-	transmitCmd.Flags().StringVar(&kubefirstTeamInfo, "kubefirst-team-info", "", "kubefirst team info")
 }
