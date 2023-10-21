@@ -10,8 +10,8 @@ import (
 	"os"
 
 	"github.com/denisbrodbeck/machineid"
-	"github.com/kubefirst/metrics-client/pkg/segment"
-	telemetry "github.com/kubefirst/metrics-client/pkg/telemetry"
+	"github.com/kubefirst/metrics-client/pkg/telemetry"
+	"github.com/kubefirst/metrics-client/pkg/utils"
 
 	"github.com/segmentio/analytics-go"
 	log "github.com/sirupsen/logrus"
@@ -41,16 +41,16 @@ var transmitCmd = &cobra.Command{
 		}
 
 		domainName := os.Getenv("DOMAIN_NAME")
-		strippedDomainName, err := telemetry.RemoveSubdomainV2(domainName)
+		strippedDomainName, err := utils.RemoveSubdomainV2(domainName)
 		if err != nil {
 			log.Errorf("error encountered while reducing domain name. %s", err)
 		}
 		machineID, _ := machineid.ID()
 
-		segmentClient := analytics.New(segment.SegmentIOWriteKey)
+		segmentClient := analytics.New(telemetry.SegmentIOWriteKey)
 		defer segmentClient.Close()
 
-		event := segment.TelemetryEvent{
+		event := telemetry.TelemetryEvent{
 			CliVersion:        os.Getenv("CLI_VERSION"),
 			CloudProvider:     os.Getenv("CLOUD_PROVIDER"),
 			ClusterID:         os.Getenv("CLUSTER_ID"),
@@ -64,21 +64,21 @@ var transmitCmd = &cobra.Command{
 			MachineID:         machineID, // done
 			ErrorMessage:      err.Error(),
 			UserId:            machineID,
-			MetricName:        segment.MetricClusterInstallStarted,
+			MetricName:        telemetry.MetricClusterInstallStarted,
 		}
-		
+
 		switch transmitType {
 		case "cluster-zero":
 			//started event
-			err := segment.SendCountMetric(event)
+			err := telemetry.SendCountMetric(event)
 			if err != nil {
 				log.Error(err)
 			}
 			log.Infof("metrics transmitted: %s", event.MetricName)
 
 			//completed event
-			event.MetricName = segment.MetricClusterInstallCompleted
-			err = segment.SendCountMetric(event)
+			event.MetricName = telemetry.MetricClusterInstallCompleted
+			err = telemetry.SendCountMetric(event)
 			if err != nil {
 				log.Error(err)
 			}

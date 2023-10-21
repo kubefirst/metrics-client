@@ -7,40 +7,39 @@ See the LICENSE file for more details.
 package telemetry
 
 import (
-	"strings"
-	"time"
-
-	"github.com/kubefirst/metrics-client/pkg/segment"
+	"github.com/segmentio/analytics-go"
 )
 
-// Heartbeat
-func Heartbeat(segmentClient *segment.SegmentClient) {
-	// sent one heartbeat for the mgmt cluster
-	segment.SendCountMetric(segmentClient)
-	// Transmit(segmentClient, segment.MetricKubefirstHeartbeat, "")
-	// // workload
-	// HeartbeatWorkloadClusters()
-	// //TODO! DIETZ - NO WAY
-	for range time.Tick(time.Minute * 2) {
-		segment.SendCountMetric(segmentClient)
-
-		// // sent one heartbeat for the mgmt cluster
-		// Transmit(segmentClient, segment.MetricKubefirstHeartbeat, "")
-		// // workload
-		// HeartbeatWorkloadClusters()
+func SendCountMetric(segmentClient *SegmentClient) error {
+	if segmentClient.TelemetryEvent.MetricName == MetricClusterInstallStarted {
+		err := segmentClient.Client.Enqueue(analytics.Identify{
+			UserId: segmentClient.TelemetryEvent.UserId,
+			Type:   "identify",
+		})
+		if err != nil {
+			return err
+		}
 	}
-}
-
-func RemoveSubdomainV2(domainName string) (string, error) {
-
-	domainName = strings.TrimRight(domainName, ".")
-	domainSlice := strings.Split(domainName, ".")
-
-	if len(domainSlice) < 2 {
-		return "", nil
+	err := segmentClient.Client.Enqueue(analytics.Track{
+		UserId: segmentClient.TelemetryEvent.UserId,
+		Event:  segmentClient.TelemetryEvent.MetricName,
+		Properties: analytics.NewProperties().
+			Set("cli_version", segmentClient.TelemetryEvent.CliVersion).
+			Set("cloud_provider", segmentClient.TelemetryEvent.CloudProvider).
+			Set("cluster_id", segmentClient.TelemetryEvent.ClusterID).
+			Set("cluster_type", segmentClient.TelemetryEvent.ClusterType).
+			Set("domain", segmentClient.TelemetryEvent.DomainName).
+			Set("git_provider", segmentClient.TelemetryEvent.GitProvider).
+			Set("client", segmentClient.TelemetryEvent.KubefirstClient).
+			Set("kubefirst_team", segmentClient.TelemetryEvent.KubefirstTeam).
+			Set("kubefirst_team_info", segmentClient.TelemetryEvent.KubefirstTeamInfo).
+			Set("machine_id", segmentClient.TelemetryEvent.MachineID).
+			Set("error", segmentClient.TelemetryEvent.ErrorMessage).
+			Set("install_method", segmentClient.TelemetryEvent.InstallMethod),
+	})
+	if err != nil {
+		return err
 	}
 
-	domainName = strings.Join([]string{domainSlice[len(domainSlice)-2], domainSlice[len(domainSlice)-1]}, ".")
-
-	return domainName, nil
+	return nil
 }
