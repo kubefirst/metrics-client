@@ -47,42 +47,44 @@ var transmitCmd = &cobra.Command{
 		}
 		machineID, _ := machineid.ID()
 
-		segmentClient := analytics.New(telemetry.SegmentIOWriteKey)
-		defer segmentClient.Close()
-
-		event := telemetry.TelemetryEvent{
-			CliVersion:        os.Getenv("CLI_VERSION"),
-			CloudProvider:     os.Getenv("CLOUD_PROVIDER"),
-			ClusterID:         os.Getenv("CLUSTER_ID"),
-			ClusterType:       os.Getenv("CLUSTER_TYPE"),
-			DomainName:        strippedDomainName, // done
-			GitProvider:       os.Getenv("GIT_PROVIDER"),
-			InstallMethod:     os.Getenv("INSTALL_METHOD"),
-			KubefirstClient:   os.Getenv("KUBEFIRST_CLIENT"),
-			KubefirstTeam:     os.Getenv("KUBEFIRST_TEAM"),
-			KubefirstTeamInfo: os.Getenv("KUBEFIRST_TEAM_INFO"),
-			MachineID:         machineID, // done
-			ErrorMessage:      err.Error(),
-			UserId:            machineID,
-			MetricName:        telemetry.MetricClusterInstallStarted,
+		segmentClient := telemetry.SegmentClient{
+			TelemetryEvent: telemetry.TelemetryEvent{
+				CliVersion:        os.Getenv("CLI_VERSION"),
+				CloudProvider:     os.Getenv("CLOUD_PROVIDER"),
+				ClusterID:         os.Getenv("CLUSTER_ID"),
+				ClusterType:       os.Getenv("CLUSTER_TYPE"),
+				DomainName:        strippedDomainName,
+				GitProvider:       os.Getenv("GIT_PROVIDER"),
+				InstallMethod:     os.Getenv("INSTALL_METHOD"),
+				KubefirstClient:   os.Getenv("KUBEFIRST_CLIENT"),
+				KubefirstTeam:     os.Getenv("KUBEFIRST_TEAM"),
+				KubefirstTeamInfo: os.Getenv("KUBEFIRST_TEAM_INFO"),
+				MachineID:         machineID,
+				ErrorMessage:      err.Error(),
+				UserId:            machineID,
+				MetricName:        telemetry.MetricClusterInstallStarted,
+			},
+			Client: analytics.New(telemetry.SegmentIOWriteKey),
 		}
+
+		defer segmentClient.Client.Close()
 
 		switch transmitType {
 		case "cluster-zero":
 			//started event
-			err := telemetry.SendCountMetric(event)
+			err := telemetry.SendCountMetric(&segmentClient)
 			if err != nil {
 				log.Error(err)
 			}
-			log.Infof("metrics transmitted: %s", event.MetricName)
+			log.Infof("metrics transmitted: %s", segmentClient.TelemetryEvent.MetricName)
 
 			//completed event
-			event.MetricName = telemetry.MetricClusterInstallCompleted
-			err = telemetry.SendCountMetric(event)
+			segmentClient.TelemetryEvent.MetricName = telemetry.MetricClusterInstallCompleted
+			err = telemetry.SendCountMetric(&segmentClient)
 			if err != nil {
 				log.Error(err)
 			}
-			log.Infof("metrics transmitted: %s", event.MetricName)
+			log.Infof("metrics transmitted: %s", segmentClient.TelemetryEvent.MetricName)
 		default:
 			log.Errorf("%s is not an allowed option", transmitType)
 		}
@@ -91,16 +93,6 @@ var transmitCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(transmitCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// transmitCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// transmitCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 
 	transmitCmd.Flags().StringVar(&transmitType, "type", "", "the type of metric to transmit [cluster-zero] (required)")
 	transmitCmd.MarkFlagRequired("type")
