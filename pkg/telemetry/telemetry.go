@@ -13,23 +13,7 @@ import (
 	"github.com/kubefirst/metrics-client/pkg/segment"
 )
 
-// Heartbeat
-func Heartbeat(segmentClient *segment.SegmentClient) {
-	// sent one heartbeat for the mgmt cluster
-	segment.SendCountMetric(segmentClient)
-	// Transmit(segmentClient, segment.MetricKubefirstHeartbeat, "")
-	// // workload
-	// HeartbeatWorkloadClusters()
-	// //TODO! DIETZ - NO WAY
-	for range time.Tick(time.Minute * 2) {
-		segment.SendCountMetric(segmentClient)
 
-		// // sent one heartbeat for the mgmt cluster
-		// Transmit(segmentClient, segment.MetricKubefirstHeartbeat, "")
-		// // workload
-		// HeartbeatWorkloadClusters()
-	}
-}
 
 func RemoveSubdomainV2(domainName string) (string, error) {
 
