@@ -7,8 +7,15 @@ See the LICENSE file for more details.
 package cmd
 
 import (
-	"github.com/kubefirst/metrics-client/internal/telemetryShim"
-	"github.com/kubefirst/runtime/pkg/segment"
+	"os"
+
+	"github.com/denisbrodbeck/machineid"
+	"github.com/kubefirst/kubefirst-api/pkg/metrics"
+	"github.com/kubefirst/kubefirst-api/pkg/segment"
+	"github.com/kubefirst/metrics-client/pkg/telemetry"
+	"github.com/kubefirst/metrics-client/pkg/utils"
+
+	"github.com/segmentio/analytics-go"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -29,32 +36,57 @@ var transmitCmd = &cobra.Command{
 	Long:  `transmit a metric`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// Telemetry handler
-		segmentClient, err := telemetryShim.SetupInitialTelemetry(
-			clusterId,
-			clusterType,
-			installMethod,
-			kubefirstTeam,
-			kubefirstTeamInfo,
-		)
-		if err != nil {
-			log.Warn(err)
+
+		kubefirstVersion := os.Getenv("KUBEFIRST_VERSION")
+		if kubefirstVersion == "" {
+			kubefirstVersion = "development"
 		}
+
+		domainName := os.Getenv("DOMAIN_NAME")
+		strippedDomainName, err := utils.RemoveSubdomainV2(domainName)
+		if err != nil {
+			log.Errorf("error encountered while reducing domain name. %s", err)
+		}
+		machineID, _ := machineid.ID()
+
+		segmentClient := telemetry.SegmentClient{
+			TelemetryEvent: telemetry.TelemetryEvent{
+				CliVersion:        os.Getenv("CLI_VERSION"),
+				CloudProvider:     os.Getenv("CLOUD_PROVIDER"),
+				ClusterID:         os.Getenv("CLUSTER_ID"),
+				ClusterType:       os.Getenv("CLUSTER_TYPE"),
+				DomainName:        strippedDomainName,
+				ErrorMessage:      err.Error(),
+				GitProvider:       os.Getenv("GIT_PROVIDER"),
+				InstallMethod:     os.Getenv("INSTALL_METHOD"),
+				KubefirstClient:   os.Getenv("KUBEFIRST_CLIENT"),
+				KubefirstTeam:     os.Getenv("KUBEFIRST_TEAM"),
+				KubefirstTeamInfo: os.Getenv("KUBEFIRST_TEAM_INFO"),
+				MachineID:         machineID,
+				MetricName:        metrics.ClusterInstallStarted,
+				UserId:            machineID,
+			},
+			Client: analytics.New(segment.SegmentIOWriteKey),
+		}
+
 		defer segmentClient.Client.Close()
 
 		switch transmitType {
 		case "cluster-zero":
-			if installMethod == "" {
-				log.Fatalf("when transmitting cluster-zero metric type, install-method is a required value")
+			//started event
+			err := telemetry.SendCountMetric(&segmentClient, metrics.ClusterInstallStarted, "")
+			if err != nil {
+				log.Error(err)
 			}
-			telemetryShim.TransmitClusterZero(true, segmentClient, segment.MetricClusterInstallStarted, "")
-			telemetryShim.TransmitClusterZero(true, segmentClient, segment.MetricClusterInstallCompleted, "")
-			log.Infof(
-				"metrics transmitted: %s/%s %s and %s",
-				clusterId,
-				clusterType,
-				segment.MetricClusterInstallStarted,
-				segment.MetricClusterInstallCompleted,
-			)
+			log.Infof("metrics transmitted: %s", segmentClient.TelemetryEvent.MetricName)
+
+			//completed event
+			segmentClient.TelemetryEvent.MetricName = metrics.ClusterInstallCompleted
+			err = telemetry.SendCountMetric(&segmentClient, metrics.ClusterInstallCompleted, err.Error())
+			if err != nil {
+				log.Error(err)
+			}
+			log.Infof("metrics transmitted: %s", segmentClient.TelemetryEvent.MetricName)
 		default:
 			log.Errorf("%s is not an allowed option", transmitType)
 		}
@@ -64,23 +96,6 @@ var transmitCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(transmitCmd)
 
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// transmitCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// transmitCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-
 	transmitCmd.Flags().StringVar(&transmitType, "type", "", "the type of metric to transmit [cluster-zero] (required)")
 	transmitCmd.MarkFlagRequired("type")
-	transmitCmd.Flags().StringVar(&clusterId, "cluster-id", "", "the kubefirst cluster id (required)")
-	transmitCmd.MarkFlagRequired("cluster-id")
-	transmitCmd.Flags().StringVar(&clusterType, "cluster-type", "", "the kubefirst cluster type (required)")
-	transmitCmd.MarkFlagRequired("cluster-type")
-	transmitCmd.Flags().StringVar(&installMethod, "install-method", "", "the installation method for the cluster")
-	transmitCmd.Flags().StringVar(&kubefirstTeam, "kubefirst-team", "", "kubefirst team [true/false]")
-	transmitCmd.Flags().StringVar(&kubefirstTeamInfo, "kubefirst-team-info", "", "kubefirst team info")
 }
