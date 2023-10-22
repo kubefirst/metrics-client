@@ -11,7 +11,7 @@ import (
 	"github.com/segmentio/analytics-go"
 )
 
-func SendCountMetric(segmentClient *SegmentClient, metricName string) error {
+func SendCountMetric(segmentClient *SegmentClient, metricName string, errMsg string) error {
 	if segmentClient.TelemetryEvent.MetricName == metrics.ClusterInstallStarted {
 		err := segmentClient.Client.Enqueue(analytics.Identify{
 			UserId: segmentClient.TelemetryEvent.UserId,
@@ -23,7 +23,7 @@ func SendCountMetric(segmentClient *SegmentClient, metricName string) error {
 	}
 	err := segmentClient.Client.Enqueue(analytics.Track{
 		UserId: segmentClient.TelemetryEvent.UserId,
-		Event:  segmentClient.TelemetryEvent.MetricName,
+		Event:  metricName,
 		Properties: analytics.NewProperties().
 			Set("cli_version", segmentClient.TelemetryEvent.CliVersion).
 			Set("cloud_provider", segmentClient.TelemetryEvent.CloudProvider).
@@ -35,7 +35,7 @@ func SendCountMetric(segmentClient *SegmentClient, metricName string) error {
 			Set("kubefirst_team", segmentClient.TelemetryEvent.KubefirstTeam).
 			Set("kubefirst_team_info", segmentClient.TelemetryEvent.KubefirstTeamInfo).
 			Set("machine_id", segmentClient.TelemetryEvent.MachineID).
-			Set("error", segmentClient.TelemetryEvent.ErrorMessage).
+			Set("error", errMsg).
 			Set("install_method", segmentClient.TelemetryEvent.InstallMethod),
 	})
 	if err != nil {
