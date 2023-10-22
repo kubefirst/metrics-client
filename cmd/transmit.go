@@ -34,7 +34,6 @@ var transmitCmd = &cobra.Command{
 	Long:  `transmit a metric`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// Telemetry handler
-
 		kubefirstVersion := os.Getenv("KUBEFIRST_VERSION")
 		if kubefirstVersion == "" {
 			kubefirstVersion = "development"
@@ -47,14 +46,14 @@ var transmitCmd = &cobra.Command{
 		}
 		machineID, _ := machineid.ID()
 
-		segmentClient := telemetry.SegmentClient{
+		segmentClient := &telemetry.SegmentClient{
 			TelemetryEvent: telemetry.TelemetryEvent{
-				CliVersion:        os.Getenv("CLI_VERSION"),
+				CliVersion:        os.Getenv("KUBEFIRST_VERSION"),
 				CloudProvider:     os.Getenv("CLOUD_PROVIDER"),
 				ClusterID:         os.Getenv("CLUSTER_ID"),
 				ClusterType:       os.Getenv("CLUSTER_TYPE"),
 				DomainName:        strippedDomainName,
-				ErrorMessage:      err.Error(),
+				ErrorMessage:      "",
 				GitProvider:       os.Getenv("GIT_PROVIDER"),
 				InstallMethod:     os.Getenv("INSTALL_METHOD"),
 				KubefirstClient:   os.Getenv("KUBEFIRST_CLIENT"),
@@ -72,7 +71,7 @@ var transmitCmd = &cobra.Command{
 		switch transmitType {
 		case "cluster-zero":
 			//started event
-			err := telemetry.SendEvent(&segmentClient, telemetry.ClusterInstallStarted, "")
+			err := telemetry.SendEvent(segmentClient, telemetry.ClusterInstallStarted, "")
 			if err != nil {
 				log.Error(err)
 			}
@@ -80,7 +79,7 @@ var transmitCmd = &cobra.Command{
 
 			//completed event
 			segmentClient.TelemetryEvent.MetricName = telemetry.ClusterInstallCompleted
-			err = telemetry.SendEvent(&segmentClient, telemetry.ClusterInstallCompleted, err.Error())
+			err = telemetry.SendEvent(segmentClient, telemetry.ClusterInstallCompleted, "")
 			if err != nil {
 				log.Error(err)
 			}
