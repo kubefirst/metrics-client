@@ -11,6 +11,7 @@ import "github.com/segmentio/analytics-go"
 type SegmentClient struct {
 	TelemetryEvent TelemetryEvent
 	Client         analytics.Client
+	UseTelemetry   bool
 }
 
 type TelemetryEvent struct {
