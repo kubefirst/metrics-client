@@ -7,7 +7,6 @@ See the LICENSE file for more details.
 package telemetry
 
 type TelemetryEvent struct {
-	UseTelemetry      bool
 	CliVersion        string
 	CloudProvider     string
 	ClusterID         string
