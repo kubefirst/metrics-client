@@ -7,6 +7,8 @@ See the LICENSE file for more details.
 package telemetry
 
 import (
+	"time"
+
 	"github.com/segmentio/analytics-go"
 )
 
@@ -47,12 +49,10 @@ func SendEvent(segmentClient *SegmentClient, metricName string, errMsg string) e
 func SendEventV2(segmentIOWriteKey string, event TelemetryEvent, metricName string, errMsg string) error {
 
 	client := analytics.New(segmentIOWriteKey)
-	defer client.Close()
 
 	if event.MetricName == ClusterInstallStarted {
 		err := client.Enqueue(analytics.Identify{
 			UserId: event.UserId,
-			Type:   "identify",
 		})
 		if err != nil {
 			return err
@@ -79,5 +79,52 @@ func SendEventV2(segmentIOWriteKey string, event TelemetryEvent, metricName stri
 		return err
 	}
 
+	client.Close()
+	time.Sleep(time.Second * 10)
+	return nil
+}
+
+func SendEventV3(segmentIOWriteKey string, event TelemetryEvent, metricName string, errMsg string) error {
+
+	client, err := analytics.NewWithConfig(segmentIOWriteKey, analytics.Config{
+		Interval:  3,
+		BatchSize: 1,
+		Verbose:   true,
+	})
+	if err != nil {
+		return err
+	}
+
+	if event.MetricName == ClusterInstallStarted {
+		err := client.Enqueue(analytics.Identify{
+			UserId: event.UserId,
+		})
+		if err != nil {
+			return err
+		}
+	}
+	err = client.Enqueue(analytics.Track{
+		UserId: event.UserId,
+		Event:  metricName,
+		Properties: analytics.NewProperties().
+			Set("cli_version", event.CliVersion).
+			Set("cloud_provider", event.CloudProvider).
+			Set("cluster_id", event.ClusterID).
+			Set("cluster_type", event.ClusterType).
+			Set("domain", event.DomainName).
+			Set("git_provider", event.GitProvider).
+			Set("client", event.KubefirstClient).
+			Set("kubefirst_team", event.KubefirstTeam).
+			Set("kubefirst_team_info", event.KubefirstTeamInfo).
+			Set("machine_id", event.MachineID).
+			Set("error", errMsg).
+			Set("install_method", event.InstallMethod),
+	})
+	if err != nil {
+		return err
+	}
+
+	client.Close()
+	time.Sleep(time.Second * 10)
 	return nil
 }
