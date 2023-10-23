@@ -9,7 +9,6 @@ package cmd
 import (
 	"os"
 
-	"github.com/denisbrodbeck/machineid"
 	"github.com/kubefirst/metrics-client/pkg/telemetry"
 	"github.com/kubefirst/metrics-client/pkg/utils"
 
@@ -43,7 +42,6 @@ var transmitCmd = &cobra.Command{
 		if err != nil {
 			log.Errorf("error encountered while reducing domain name. %s", err)
 		}
-		machineID, _ := machineid.ID()
 
 		event := telemetry.TelemetryEvent{
 			CliVersion:        os.Getenv("KUBEFIRST_VERSION"),
@@ -57,9 +55,9 @@ var transmitCmd = &cobra.Command{
 			KubefirstClient:   os.Getenv("KUBEFIRST_CLIENT"),
 			KubefirstTeam:     os.Getenv("KUBEFIRST_TEAM"),
 			KubefirstTeamInfo: os.Getenv("KUBEFIRST_TEAM_INFO"),
-			MachineID:         machineID,
+			MachineID:         os.Getenv("CLUSTER_ID"),
 			MetricName:        telemetry.ClusterInstallStarted,
-			UserId:            machineID,
+			UserId:            os.Getenv("CLUSTER_ID"),
 		}
 
 		switch transmitType {
