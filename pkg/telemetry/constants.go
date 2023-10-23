@@ -43,6 +43,7 @@ const (
 	// Create
 	ClusterInstallStarted   = "kubefirst.cluster_install.started"
 	ClusterInstallCompleted = "kubefirst.cluster_install.completed"
+	ClusterInstallFailed = "kubefirst.cluster_install.failed"
 
 	GitTerraformApplyStarted   = "kubefirst.git_terraform_apply.started"
 	GitTerraformApplyCompleted = "kubefirst.git_terraform_apply.completed"
