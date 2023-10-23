@@ -7,12 +7,26 @@ See the LICENSE file for more details.
 package telemetry
 
 import (
+	"os"
+
 	"github.com/segmentio/analytics-go"
+	log "github.com/sirupsen/logrus"
 )
 
-func SendEvent(segmentIOWriteKey string, event TelemetryEvent, metricName string, errMsg string) error {
+func SendEvent(event TelemetryEvent, metricName string, errMsg string) error {
 
-	client, err := analytics.NewWithConfig(segmentIOWriteKey, analytics.Config{
+	useTelemetryStr := os.Getenv("USE_TELEMETRY")
+	useTelemetry := true
+	if useTelemetryStr == "false" {
+		useTelemetry = false
+	}
+
+	if !useTelemetry {
+		log.Info("telemetry collection is disabled")
+		return nil
+	}
+
+	client, err := analytics.NewWithConfig(SegmentIOWriteKey, analytics.Config{
 		Interval:  3,
 		BatchSize: 2,
 	})
