@@ -44,7 +44,7 @@ func SendEvent(segmentIOWriteKey string, event TelemetryEvent, metricName string
 			Set("install_method", event.InstallMethod).
 			Set("client", event.KubefirstClient).
 			Set("kubefirst_team", event.KubefirstTeam).
-			Set("kubefirst_team_info", event.KubefirstTeam).
+			Set("kubefirst_team_info", event.KubefirstTeamInfo).
 			Set("machine_id", event.MachineID).
 			Set("error", errMsg),
 	})
