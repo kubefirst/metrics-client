@@ -7,90 +7,17 @@ See the LICENSE file for more details.
 package telemetry
 
 import (
-	"time"
-
 	"github.com/segmentio/analytics-go"
 )
 
-func SendEvent(segmentClient *SegmentClient, metricName string, errMsg string) error {
-	if segmentClient.TelemetryEvent.MetricName == ClusterInstallStarted {
-		err := segmentClient.Client.Enqueue(analytics.Identify{
-			UserId: segmentClient.TelemetryEvent.UserId,
-			Type:   "identify",
-		})
-		if err != nil {
-			return err
-		}
-	}
-	err := segmentClient.Client.Enqueue(analytics.Track{
-		UserId: segmentClient.TelemetryEvent.UserId,
-		Event:  metricName,
-		Properties: analytics.NewProperties().
-			Set("cli_version", segmentClient.TelemetryEvent.CliVersion).
-			Set("cloud_provider", segmentClient.TelemetryEvent.CloudProvider).
-			Set("cluster_id", segmentClient.TelemetryEvent.ClusterID).
-			Set("cluster_type", segmentClient.TelemetryEvent.ClusterType).
-			Set("domain", segmentClient.TelemetryEvent.DomainName).
-			Set("git_provider", segmentClient.TelemetryEvent.GitProvider).
-			Set("client", segmentClient.TelemetryEvent.KubefirstClient).
-			Set("kubefirst_team", segmentClient.TelemetryEvent.KubefirstTeam).
-			Set("kubefirst_team_info", segmentClient.TelemetryEvent.KubefirstTeamInfo).
-			Set("machine_id", segmentClient.TelemetryEvent.MachineID).
-			Set("error", errMsg).
-			Set("install_method", segmentClient.TelemetryEvent.InstallMethod),
-	})
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func SendEventV2(segmentIOWriteKey string, event TelemetryEvent, metricName string, errMsg string) error {
-
-	client := analytics.New(segmentIOWriteKey)
-
-	if event.MetricName == ClusterInstallStarted {
-		err := client.Enqueue(analytics.Identify{
-			UserId: event.UserId,
-		})
-		if err != nil {
-			return err
-		}
-	}
-	err := client.Enqueue(analytics.Track{
-		UserId: event.UserId,
-		Event:  metricName,
-		Properties: analytics.NewProperties().
-			Set("cli_version", event.CliVersion).
-			Set("cloud_provider", event.CloudProvider).
-			Set("cluster_id", event.ClusterID).
-			Set("cluster_type", event.ClusterType).
-			Set("domain", event.DomainName).
-			Set("git_provider", event.GitProvider).
-			Set("client", event.KubefirstClient).
-			Set("kubefirst_team", event.KubefirstTeam).
-			Set("kubefirst_team_info", event.KubefirstTeamInfo).
-			Set("machine_id", event.MachineID).
-			Set("error", errMsg).
-			Set("install_method", event.InstallMethod),
-	})
-	if err != nil {
-		return err
-	}
-
-	client.Close()
-	time.Sleep(time.Second * 10)
-	return nil
-}
-
-func SendEventV3(segmentIOWriteKey string, event TelemetryEvent, metricName string, errMsg string) error {
+func SendEvent(segmentIOWriteKey string, event TelemetryEvent, metricName string, errMsg string) error {
 
 	client, err := analytics.NewWithConfig(segmentIOWriteKey, analytics.Config{
 		Interval:  3,
-		BatchSize: 1,
-		Verbose:   true,
+		BatchSize: 2,
 	})
+
+	defer client.Close()
 	if err != nil {
 		return err
 	}
@@ -103,6 +30,7 @@ func SendEventV3(segmentIOWriteKey string, event TelemetryEvent, metricName stri
 			return err
 		}
 	}
+
 	err = client.Enqueue(analytics.Track{
 		UserId: event.UserId,
 		Event:  metricName,
@@ -113,18 +41,16 @@ func SendEventV3(segmentIOWriteKey string, event TelemetryEvent, metricName stri
 			Set("cluster_type", event.ClusterType).
 			Set("domain", event.DomainName).
 			Set("git_provider", event.GitProvider).
+			Set("install_method", event.InstallMethod).
 			Set("client", event.KubefirstClient).
 			Set("kubefirst_team", event.KubefirstTeam).
 			Set("kubefirst_team_info", event.KubefirstTeamInfo).
 			Set("machine_id", event.MachineID).
-			Set("error", errMsg).
-			Set("install_method", event.InstallMethod),
+			Set("error", errMsg),
 	})
 	if err != nil {
 		return err
 	}
 
-	client.Close()
-	time.Sleep(time.Second * 10)
 	return nil
 }

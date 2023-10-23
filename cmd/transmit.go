@@ -13,7 +13,6 @@ import (
 	"github.com/kubefirst/metrics-client/pkg/telemetry"
 	"github.com/kubefirst/metrics-client/pkg/utils"
 
-	"github.com/segmentio/analytics-go"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -46,44 +45,39 @@ var transmitCmd = &cobra.Command{
 		}
 		machineID, _ := machineid.ID()
 
-		segmentClient := &telemetry.SegmentClient{
-			TelemetryEvent: telemetry.TelemetryEvent{
-				CliVersion:        os.Getenv("KUBEFIRST_VERSION"),
-				CloudProvider:     os.Getenv("CLOUD_PROVIDER"),
-				ClusterID:         os.Getenv("CLUSTER_ID"),
-				ClusterType:       os.Getenv("CLUSTER_TYPE"),
-				DomainName:        strippedDomainName,
-				ErrorMessage:      "",
-				GitProvider:       os.Getenv("GIT_PROVIDER"),
-				InstallMethod:     os.Getenv("INSTALL_METHOD"),
-				KubefirstClient:   os.Getenv("KUBEFIRST_CLIENT"),
-				KubefirstTeam:     os.Getenv("KUBEFIRST_TEAM"),
-				KubefirstTeamInfo: os.Getenv("KUBEFIRST_TEAM_INFO"),
-				MachineID:         machineID,
-				MetricName:        telemetry.ClusterInstallStarted,
-				UserId:            machineID,
-			},
-			Client: analytics.New(telemetry.SegmentIOWriteKey),
+		event := telemetry.TelemetryEvent{
+			CliVersion:        os.Getenv("KUBEFIRST_VERSION"),
+			CloudProvider:     os.Getenv("CLOUD_PROVIDER"),
+			ClusterID:         os.Getenv("CLUSTER_ID"),
+			ClusterType:       os.Getenv("CLUSTER_TYPE"),
+			DomainName:        strippedDomainName,
+			ErrorMessage:      "",
+			GitProvider:       os.Getenv("GIT_PROVIDER"),
+			InstallMethod:     os.Getenv("INSTALL_METHOD"),
+			KubefirstClient:   os.Getenv("KUBEFIRST_CLIENT"),
+			KubefirstTeam:     os.Getenv("KUBEFIRST_TEAM"),
+			KubefirstTeamInfo: os.Getenv("KUBEFIRST_TEAM_INFO"),
+			MachineID:         machineID,
+			MetricName:        telemetry.ClusterInstallStarted,
+			UserId:            machineID,
 		}
-
-		defer segmentClient.Client.Close()
 
 		switch transmitType {
 		case "cluster-zero":
 			//started event
-			err := telemetry.SendEvent(segmentClient, telemetry.ClusterInstallStarted, "")
+			err := telemetry.SendEvent(telemetry.SegmentIOWriteKey, event, telemetry.ClusterInstallStarted, "")
 			if err != nil {
 				log.Error(err)
 			}
-			log.Infof("metrics transmitted: %s", segmentClient.TelemetryEvent.MetricName)
+			log.Infof("metrics transmitted: %s", event.MetricName)
 
 			//completed event
-			segmentClient.TelemetryEvent.MetricName = telemetry.ClusterInstallCompleted
-			err = telemetry.SendEvent(segmentClient, telemetry.ClusterInstallCompleted, "")
+			event.MetricName = telemetry.ClusterInstallCompleted
+			err = telemetry.SendEvent(telemetry.SegmentIOWriteKey, event, telemetry.ClusterInstallCompleted, "")
 			if err != nil {
 				log.Error(err)
 			}
-			log.Infof("metrics transmitted: %s", segmentClient.TelemetryEvent.MetricName)
+			log.Infof("metrics transmitted: %s", event.MetricName)
 		default:
 			log.Errorf("%s is not an allowed option", transmitType)
 		}
