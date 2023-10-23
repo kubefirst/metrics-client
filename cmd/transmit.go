@@ -63,7 +63,7 @@ var transmitCmd = &cobra.Command{
 		switch transmitType {
 		case "cluster-zero":
 			//started event
-			err := telemetry.SendEvent(telemetry.SegmentIOWriteKey, event, telemetry.ClusterInstallStarted, "")
+			err := telemetry.SendEvent(event, telemetry.ClusterInstallStarted, "")
 			if err != nil {
 				log.Error(err)
 			}
@@ -71,7 +71,7 @@ var transmitCmd = &cobra.Command{
 
 			//completed event
 			event.MetricName = telemetry.ClusterInstallCompleted
-			err = telemetry.SendEvent(telemetry.SegmentIOWriteKey, event, telemetry.ClusterInstallCompleted, "")
+			err = telemetry.SendEvent(event, telemetry.ClusterInstallCompleted, "")
 			if err != nil {
 				log.Error(err)
 			}
