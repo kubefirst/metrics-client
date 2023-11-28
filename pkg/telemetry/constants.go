@@ -41,9 +41,11 @@ const (
 	KbotSetupFailed    = "kubefirst.init.kbot_setup.failed"
 
 	// Create
-	ClusterInstallStarted   = "kubefirst.cluster_install.started"
+	// note: as of kubefirst 2.3.6, there will no longer a kubefirst.cluster_install.started event
+	// as all installs are conducted through helm
+	// ClusterInstallStarted   = "kubefirst.cluster_install.started" # permanently removed
 	ClusterInstallCompleted = "kubefirst.cluster_install.completed"
-	ClusterInstallFailed = "kubefirst.cluster_install.failed"
+	ClusterInstallFailed    = "kubefirst.cluster_install.failed"
 
 	GitTerraformApplyStarted   = "kubefirst.git_terraform_apply.started"
 	GitTerraformApplyCompleted = "kubefirst.git_terraform_apply.completed"

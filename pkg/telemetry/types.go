@@ -12,14 +12,14 @@ type TelemetryEvent struct {
 	ClusterID         string
 	ClusterType       string
 	DomainName        string
+	ErrorMessage      string
 	GitProvider       string
 	InstallMethod     string
 	KubefirstClient   string
 	KubefirstTeam     string
 	KubefirstTeamInfo string
 	MachineID         string
-	////////////////////////
-	ErrorMessage string
-	MetricName   string
-	UserId       string
+	MetricName        string
+	ParentClusterId   string
+	UserId            string
 }
