@@ -22,7 +22,6 @@ var (
 	installMethod     string
 	kubefirstTeam     string
 	kubefirstTeamInfo string
-	transmitType      string
 )
 
 // transmitCmd represents the transmit command
@@ -56,35 +55,21 @@ var transmitCmd = &cobra.Command{
 			KubefirstTeam:     os.Getenv("KUBEFIRST_TEAM"),
 			KubefirstTeamInfo: os.Getenv("KUBEFIRST_TEAM_INFO"),
 			MachineID:         os.Getenv("CLUSTER_ID"),
-			MetricName:        telemetry.ClusterInstallStarted,
+			ParentClusterId:   os.Getenv("PARENT_CLUSTER_ID"),
+			MetricName:        telemetry.ClusterInstallCompleted,
 			UserId:            os.Getenv("CLUSTER_ID"),
 		}
 
-		switch transmitType {
-		case "cluster-zero":
-			//started event
-			err := telemetry.SendEvent(event, telemetry.ClusterInstallStarted, "")
-			if err != nil {
-				log.Error(err)
-			}
-			log.Infof("metrics transmitted: %s", event.MetricName)
-
-			//completed event
-			event.MetricName = telemetry.ClusterInstallCompleted
-			err = telemetry.SendEvent(event, telemetry.ClusterInstallCompleted, "")
-			if err != nil {
-				log.Error(err)
-			}
-			log.Infof("metrics transmitted: %s", event.MetricName)
-		default:
-			log.Errorf("%s is not an allowed option", transmitType)
+		err = telemetry.SendEvent(event, telemetry.ClusterInstallCompleted, "")
+		if err != nil {
+			log.Error(err)
 		}
+		log.Infof("metrics transmitted: %s", event.MetricName)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(transmitCmd)
 
-	transmitCmd.Flags().StringVar(&transmitType, "type", "", "the type of metric to transmit [cluster-zero] (required)")
 	transmitCmd.MarkFlagRequired("type")
 }

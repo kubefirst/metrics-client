@@ -36,7 +36,7 @@ func SendEvent(event TelemetryEvent, metricName string, errMsg string) error {
 		return err
 	}
 
-	if event.MetricName == ClusterInstallStarted {
+	if event.MetricName == ClusterInstallCompleted {
 		err := client.Enqueue(analytics.Identify{
 			UserId: event.UserId,
 		})
@@ -60,6 +60,7 @@ func SendEvent(event TelemetryEvent, metricName string, errMsg string) error {
 			Set("kubefirst_team", event.KubefirstTeam).
 			Set("kubefirst_team_info", event.KubefirstTeamInfo).
 			Set("machine_id", event.MachineID).
+			Set("parent_cluster_id", event.ParentClusterId).
 			Set("error", errMsg),
 	})
 	if err != nil {
